@@ -14,6 +14,7 @@
 #include <iterator>
 #include <limits>
 #include <string>
+#include <vector>
 #include <type_traits>
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
@@ -514,6 +515,16 @@ template <typename Char> class basic_string_view {
   friend auto operator>=(basic_string_view lhs, basic_string_view rhs) -> bool {
     return lhs.compare(rhs) >= 0;
   }
+  friend basic_string_view &operator+=(basic_string_view &lhs, const int size)  { 
+	  lhs.data_ += size;
+	  lhs.size_ -= size;
+	  return lhs;
+  }
+  basic_string_view &operator++(int)  { 
+	  ++data_;
+	  --size_;
+	  return *this;
+  }
 };
 
 using string_view = basic_string_view<char>;
@@ -697,7 +708,10 @@ class basic_format_parse_context : private ErrorHandler {
     do_check_arg_id(id);
     return id;
   }
-
+  
+  friend unsigned int operator*(basic_format_parse_context &ctx) {
+		return *ctx.begin();
+  }
   /**
     Reports an error if using the automatic argument indexing; otherwise
     switches to the manual indexing.
@@ -2643,6 +2657,7 @@ FMT_CONSTEXPR auto parse_replacement_field(const Char* begin, const Char* end,
   return begin + 1;
 }
 
+// Here Init
 template <bool IS_CONSTEXPR, typename Char, typename Handler>
 FMT_CONSTEXPR FMT_INLINE void parse_format_string(
     basic_string_view<Char> format_str, Handler&& handler) {
@@ -2893,6 +2908,7 @@ constexpr auto get_arg_index_by_name(basic_string_view<Char> name) -> int {
 }
 #endif
 
+
 template <typename... Args, typename Char>
 FMT_CONSTEXPR auto get_arg_index_by_name(basic_string_view<Char> name) -> int {
 #if FMT_USE_NONTYPE_TEMPLATE_ARGS
@@ -2903,6 +2919,7 @@ FMT_CONSTEXPR auto get_arg_index_by_name(basic_string_view<Char> name) -> int {
   return invalid_arg_index;
 }
 
+// bookmark0
 template <typename Char, typename ErrorHandler, typename... Args>
 class format_string_checker {
  private:
@@ -2916,6 +2933,8 @@ class format_string_checker {
   using parse_func = const Char* (*)(parse_context_type&);
 
   parse_context_type context_;
+  basic_format_parse_context<Char> basic_context_;
+  std::vector<basic_string_view<Char>> args_;
   parse_func parse_funcs_[num_args > 0 ? static_cast<size_t>(num_args) : 1];
   type types_[num_args > 0 ? static_cast<size_t>(num_args) : 1];
 
@@ -2926,6 +2945,16 @@ class format_string_checker {
         parse_funcs_{&parse_format_specs<Args, parse_context_type>...},
         types_{type_constant<Args, char>::value...} {}
 
+  explicit FMT_CONSTEXPR format_string_checker(basic_string_view<Char> format_str,ErrorHandler eh, int size, Args... args)
+      : context_(format_str, num_args, types_),
+	basic_context_(format_str), 
+	args_{args...}	,
+        parse_funcs_{&parse_format_specs<Args, parse_context_type>...} {}
+        //types_{type_constant<Args, char>::value...} {}
+
+  FMT_CONSTEXPR auto check_arg_in_idx(Char* a) {
+  }
+  FMT_CONSTEXPR  auto on_basic_next_id() {return basic_context_.next_arg_id();}
   FMT_CONSTEXPR void on_text(const Char*, const Char*) {}
 
   FMT_CONSTEXPR auto on_arg_id() -> int { return context_.next_arg_id(); }
@@ -2935,7 +2964,7 @@ class format_string_checker {
   FMT_CONSTEXPR auto on_arg_id(basic_string_view<Char> id) -> int {
 #if FMT_USE_NONTYPE_TEMPLATE_ARGS
     auto index = get_arg_index_by_name<Args...>(id);
-    if (index == invalid_arg_index) on_error("named argument is not found");
+    if (index == invalid_arg_index) on_error("named argument is not found"); //change1
     return context_.check_arg_id(index), index;
 #else
     (void)id;
@@ -2944,13 +2973,25 @@ class format_string_checker {
 #endif
   }
 
-  FMT_CONSTEXPR void on_replacement_field(int, const Char*) {}
+  FMT_CONSTEXPR auto check_arg_exist(const Char* a) -> int {
+	int idx =0;
+	if(args_.size() < 1) return -1;
+	for(auto s : args_) { 
+		if(s == a)  return idx;
+		idx++;
+	}
+	on_error((std::string("not found symbol: ") + a).c_str());
+	return -1;
+  }
+//  FMT_CONSTEXPR auto on_replacement_field(int, const Char*) -> int {
+//
+//	  }
 
   FMT_CONSTEXPR auto on_format_specs(int id, const Char* begin, const Char*)
       -> const Char* {
     context_.advance_to(context_.begin() + (begin - &*context_.begin()));
     // id >= 0 check is a workaround for gcc 10 bug (#2065).
-    return id >= 0 && id < num_args ? parse_funcs_[id](context_) : begin;
+    //return ID >= 0 && id < num_args ? parse_funcs_[id](context_) : begin;
   }
 
   FMT_CONSTEXPR void on_error(const char* message) {
