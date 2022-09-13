@@ -49,9 +49,23 @@ public:
 	ShitClass() = delete;
 
 	std::string getStr() const {return contain;}
-	
-	
 };
+
+template<int N>
+struct string_struct {
+public:
+	constexpr string_struct(const char (&str)[N]) {
+		std::copy_n(str,N,name);
+	}
+	char name[N];
+};
+
+template<string_struct S>
+class nameclass {
+	public:
+	static constexpr const char *name = S.name;
+};
+
 template<class T>
 std::ostream &operator<<(std::ostream &os, ShitClass<T> &shit) {
 		os << shit.getStr();
@@ -61,12 +75,11 @@ std::ostream &operator<<(std::ostream &os, ShitClass<T> &shit) {
 template<typename... Args>
 void get_idx(Args... a) {
 	std::vector v{std::initializer_list(a...)};
-	
 }
 
 template<class T>
 auto example_contains(T a) { 
-	return fmt::detail::get_arg_index_by_name<int,int>(a);
+	return fmt::detail::check_arg_in_Arg<0, nameclass<"nigger">, nameclass<"fuck">>(fmt::basic_string_view("fuck"));
 }
 
 int main() {
@@ -91,7 +104,7 @@ int main() {
 	//std::cout << "ID ==" << fmt_checker.on_arg_id("fuck") << "\n";
 	std::cout << example_contains(bsview) << "\n";
 
-	std::cout << fmt_checker.check_arg_exist("nigger") << "\n";
+	std::cout << fmt_checker.check_arg_exist("youtt") << "\n";
 
 	std::cout << "id = " << fmt_checker.on_basic_next_id() << "\n";
 	//fmt::detail::encode_types<fmt::basic_string_view,int,char*>();

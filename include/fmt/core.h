@@ -2962,6 +2962,16 @@ FMT_CONSTEXPR auto get_arg_index_by_name(basic_string_view<Char> name) -> int {
   return invalid_arg_index;
 }
 
+
+template<int N, class T, typename... Args, typename Char> 
+constexpr int check_arg_in_Arg(basic_string_view<Char> name) {
+    	if (name == T::name) return N;
+	printf("%ld\n", sizeof...(Args));
+	if constexpr (sizeof...(Args)>0) 
+		return check_arg_in_Arg<N+1,Args...>(name);
+	return invalid_arg_index;
+}
+
 // bookmark0
 template <typename Char, typename ErrorHandler, typename... Args>
 class format_string_checker {
