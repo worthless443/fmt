@@ -51,6 +51,13 @@ public:
 	std::string getStr() const {return contain;}
 };
 
+template<class T>
+std::ostream &operator<<(std::ostream &os, ShitClass<T> &shit) {
+		os << shit.getStr();
+		return os;
+}
+
+
 template<int N>
 struct string_struct {
 public:
@@ -64,22 +71,25 @@ template<string_struct S>
 class nameclass {
 	public:
 	static constexpr const char *name = S.name;
+	using Type = decltype(S);
+	static Type tp;
 };
 
-template<class T>
-std::ostream &operator<<(std::ostream &os, ShitClass<T> &shit) {
-		os << shit.getStr();
-		return os;
-}
+template<typename T>
+concept NameType = requires(T a) {
+	{T::name} -> std::convertible_to<const char*>;
+	{T::tp} -> std::convertible_to<string_struct<5>>;
+};
 
 template<typename... Args>
 void get_idx(Args... a) {
 	std::vector v{std::initializer_list(a...)};
 }
 
-template<class T>
-auto example_contains(T a) { 
-	return fmt::detail::check_arg_in_Arg<0, nameclass<"nigger">, nameclass<"fuck">>(fmt::basic_string_view("fuck"));
+// TODO Orgranize 
+template<NameType... Args>
+auto example_contains(Args... a) { 
+	return fmt::detail::check_arg_in_Arg<0, Args...>(fmt::basic_string_view("fuck"));
 }
 
 int main() {
@@ -93,7 +103,6 @@ int main() {
 
 	ShitClass shit(bsview, 10);
 	ShitClass shitt  = bsview;
-
 	using errorHandler  = fmt::detail::error_handler;
 	errorHandler eh;
 	fmt::detail::format_string_checker  fmt_checker(fmt::basic_string_view("fuck"), eh, 10, "yout", "fucktard");
@@ -102,9 +111,9 @@ int main() {
 	//fmt_checker.on_error("nigger wrong argument\n");
 	fmt_checker.on_text("nigger", "fucker");
 	//std::cout << "ID ==" << fmt_checker.on_arg_id("fuck") << "\n";
-	std::cout << example_contains(bsview) << "\n";
+	std::cout << example_contains(nameclass<"cuck">()) << "\n";
 
-	std::cout << fmt_checker.check_arg_exist("youtt") << "\n";
+	std::cout << fmt_checker.check_arg_exist("fucktard") << "\n";
 
 	std::cout << "id = " << fmt_checker.on_basic_next_id() << "\n";
 	//fmt::detail::encode_types<fmt::basic_string_view,int,char*>();
